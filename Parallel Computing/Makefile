@@ -4,6 +4,10 @@ CC=g++
 CFLAGS=-Wall -g
 SOURCES=src/*.cpp
 EXESEQ=bin/seq
+BINFOLDER=bin/
 
-seq: $(SOURCES)
+seq: $(SOURCES) $(BINFOLDER)
 	$(CC) $(SOURCES) -o $(EXESEQ) $(CFLAGS)
+
+$(BINFOLDER):
+	mkdir $(BINFOLDER)
