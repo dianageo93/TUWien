@@ -1,3 +1,6 @@
+#include <cstdlib>
+#include <ctime>
+
 #include "vector_generator.h"
 
 int compare_asc (const void* a, const void* b);
@@ -35,9 +38,9 @@ int* generate_same_value_vector (int size, int range) {
 }
 
 int compare_asc (const void* a, const void* b) {
-    return ( *(int*)a - *(int*)b );
+    return (*(int*)a - *(int*)b);
 }
 
 int compare_desc (const void* a, const void* b) {
-    return ( *(int*)b - *(int*)a );
+    return (*(int*)b - *(int*)a);
 }

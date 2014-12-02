@@ -2,7 +2,7 @@
 
 CC=g++
 CFLAGS=-c -Wall
-SOURCES=src/vector_generator.cpp src/radix_sort.cpp
+SOURCES=src/vector_generator.cpp src/radix_sort.cpp src/main.cpp src/test_sort.cpp
 OBJECTS=$(SOURCES:.cpp=.o)
 EXECUTABLE=bin/seq
 
