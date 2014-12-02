@@ -1,7 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "radix_sort.h"
+#include "bucket_sort_seq.h"
 #include "test_sort.h"
 #include "vector_generator.h"
 
@@ -20,8 +20,12 @@ int main (int argc, char** argv) {
     int range = atoi (argv[2]);
     int num_of_buckets = atoi (argv[3]);
     int* vector = generate_random_vector (num_of_elems, range);
-    radix (vector, num_of_elems, range, num_of_buckets);
+    bucketSort(vector, num_of_elems, range, num_of_buckets);
 
+    for (int i = 0; i < num_of_elems; i++) {
+        cout << vector[i] << " ";
+    }
+    cout << endl;
     if (test_is_sorted_asc (vector, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
     } else {

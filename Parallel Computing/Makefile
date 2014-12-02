@@ -11,3 +11,6 @@ seq: $(SOURCES) $(BINFOLDER)
 
 $(BINFOLDER):
 	mkdir $(BINFOLDER)
+
+run-seq: seq
+	./$(EXESEQ) ${ARGS}
