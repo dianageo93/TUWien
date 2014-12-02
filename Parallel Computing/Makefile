@@ -1,4 +1,4 @@
-# Makefile for the radix sort sequential and parallel implementation.
+# Makefile for the bucket sort sequential and parallel implementation.
 
 CC=g++
 CFLAGS=-Wall -g
