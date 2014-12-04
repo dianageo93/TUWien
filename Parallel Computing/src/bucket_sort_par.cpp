@@ -107,8 +107,8 @@ void tpool_insert (tpool_t *tpl, void (*routine)(void*), void *arg) {
 }
 
 struct partition_t {
-    int *v, start, end, min;
-    float delta;
+    int *v, start, end, &min;
+    float &delta;
     buckets_t *bucketContainer;
 
     partition_t (int *v, int start, int end, int min, float delta,
