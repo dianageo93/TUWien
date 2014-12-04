@@ -7,7 +7,7 @@
 using std::vector;
 using std::sort;
 
-int getMinVecotr (int* vector, int size) {
+int getMinVector (int* vector, int size) {
     int min = vector[0];
     for (int i = 0; i < size; i++) {
         min = vector[i] < min ? vector[i] : min;
@@ -15,7 +15,7 @@ int getMinVecotr (int* vector, int size) {
     return min;
 }
 
-int getMaxVecotr (int* vector, int size) {
+int getMaxVector (int* vector, int size) {
     int max = vector[0];
     for (int i = 0; i < size; i++) {
         max = vector[i] > max ? vector[i] : max;
@@ -25,8 +25,8 @@ int getMaxVecotr (int* vector, int size) {
 
 void bucketSort (int* vector, int size, int range, int num_of_buckets) {
     std::vector<std::vector<int> > buckets(num_of_buckets, std::vector<int>());
-    int min = getMinVecotr (vector, size);
-    int max = getMaxVecotr (vector, size);
+    int min = getMinVector (vector, size);
+    int max = getMaxVector (vector, size);
     float delta = max - min;
 
     // Place values in their buckets.
