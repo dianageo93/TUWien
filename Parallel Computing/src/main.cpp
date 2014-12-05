@@ -45,12 +45,12 @@ int main (int argc, char** argv) {
     //for (int i = 0; i < num_of_elems; i++) {
     //    cout << vector[i] << " ";
     //}
-    //cout << endl;
-    //if (test_is_sorted_asc (vector, num_of_elems)) {
-    //    cout << "Test passed: sorted asc." << endl;
-    //} else {
-    //    cout << "Test failed: sorted asc." << endl;
-    //}
+    cout << endl;
+    if (test_is_sorted_asc (vector, num_of_elems)) {
+        cout << "Test passed: sorted asc." << endl;
+    } else {
+        cout << "Test failed: sorted asc." << endl;
+    }
 
     return 0;
 }

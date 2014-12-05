@@ -129,6 +129,25 @@ struct partition_t {
     {}
 };
 
+struct sort_t {
+    int *v, *prefix, index;
+    buckets_t *bucketContainer;
+
+    sort_t (int *v, int *prefix, int index, buckets_t *bucketContainer) : v(v),
+        prefix(prefix), index(index), bucketContainer(bucketContainer)
+    {}
+};
+
+void sortBucket(void *s_void) {
+    sort_t *s = (sort_t*) s_void;
+    sort(s->bucketContainer->buckets[s->index].begin(),
+         s->bucketContainer->buckets[s->index].end());
+    int offset = s->prefix[s->index];
+    for (unsigned int i = 0; i < s->bucketContainer->buckets[s->index].size(); i++) {
+        s->v[offset + i] = s->bucketContainer->buckets[s->index][i];
+    }
+}
+
 void partition (void *p_void) {
     partition_t *p = (partition_t*) p_void;
     for (int i = p->start; i < p->end; i++) {
@@ -158,6 +177,7 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
         pool = pool_init (num_threads, POOL_MAX_SIZE, num_threads);
     }
 
+    // Partition the input vector into buckets.
     for (int i = 0; i < num_threads; i++) {
         partition_t *p = new partition_t (vector, i * block, (i+1) * block, min,
                 delta, bucketContainer);
@@ -170,19 +190,41 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
         tpool_insert (pool, partition, (void*)p);
     }
 
+    pthread_mutex_lock (&(pool->lock));
+    while (pool->num_tasks > 0) {
+        pthread_cond_wait (&(pool->done), &(pool->lock));
+    }
+    pthread_mutex_unlock (&(pool->lock));
+
+    // Sort the buckets and place the values in the initial vector.
+    int prefixSum[num_of_buckets + 1];
+    prefixSum[0] = 0;
+    int num_tasks = 0;
+    for (int i = 0; i < num_of_buckets; i++) {
+        if (bucketContainer->buckets[i].size() > 0) {
+            num_tasks++;
+        }
+        prefixSum[i + 1] = bucketContainer->buckets[i].size() +
+            prefixSum[i];
+    }
+
+    pthread_mutex_lock (&(pool->lock));
+    pool->num_tasks = num_tasks;
+    pthread_mutex_unlock (&(pool->lock));
+
+    for (int i = 0; i < num_of_buckets; i++) {
+        if (bucketContainer->buckets[i].size() > 0) {
+            sort_t *s = new sort_t (vector, prefixSum, i, bucketContainer);
+            tpool_insert (pool, sortBucket, (void*)s);
+        }
+    }
 
     pthread_mutex_lock (&(pool->lock));
     while (pool->num_tasks > 0) {
         pthread_cond_wait (&(pool->done), &(pool->lock));
     }
-
-    for (int i = 0; i < num_of_buckets; i++) {
-        if (bucketContainer->buckets[i].size() > 0) {
-            cout << "Bucket " << i << ":";
-            for (unsigned int j = 0; j < bucketContainer->buckets[i].size(); j++) {
-                cout << " " << bucketContainer->buckets[i][j];
-            }
-            cout << "\n";
-        }
+    for (int i = 0; i < num_threads; i++) {
+        pthread_cancel (pool->threads[i]);
     }
+    pthread_mutex_unlock (&(pool->lock));
 }
