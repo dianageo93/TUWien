@@ -148,14 +148,25 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets) {
     int num_threads = 1;
     int block = size / num_threads;
 
-    tpool_t *pool = pool_init (num_threads, 100000, num_threads);
+    tpool_t *pool;
+    if (size % num_threads != 0) {
+        pool = pool_init (num_threads, 100000, num_threads + 1);
+    } else {
+        pool = pool_init (num_threads, 100000, num_threads);
+    }
 
     for (int i = 0; i < num_threads; i++) {
-        partition_t *p = new partition_t(vector, i * block, (i+1) * block, min,
+        partition_t *p = new partition_t (vector, i * block, (i+1) * block, min,
                 delta, bucketContainer);
-        tpool_insert(pool, partition, (void*)p);
+        tpool_insert (pool, partition, (void*)p);
     }
-    // TODO size % num_threads != 0
+
+    if (size % num_threads != 0) {
+        partition_t *p = new partition_t (vector, num_threads * block, size,
+                min, delta, bucketContainer);
+        tpool_insert (pool, partition, (void*)p);
+    }
+
 
     pthread_mutex_lock (&(pool->lock));
     while (pool->num_tasks > 0) {
