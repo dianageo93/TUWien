@@ -1,16 +1,25 @@
 # Makefile for the bucket sort sequential and parallel implementation.
 
 CC=g++
-CFLAGS=-Wall -g -lpthread -lm
-SOURCES=src/*.cpp
-EXESEQ=bin/seq
-BINFOLDER=bin/
+CFLAGS=-Wall -g -c
+LDFLAGS=-lpthread -lm
+EXE=bin/exec
+SRC=$(wildcard src/*.cpp)
+OBJ=$(subst src, bin, $(SRC:.cpp=.o))
 
-all: $(SOURCES) $(BINFOLDER)
-	$(CC) $(SOURCES) -o $(EXESEQ) $(CFLAGS)
+all: $(SRC) $(EXE) $(BINFOLDER)
+
+$(EXE): $(OBJ)
+	$(CC) $(OBJ) -o $@ $(LDFLAGS)
+
+bin/%.o: src/%.cpp
+	$(CC) -o $@ $< $(CFLAGS)
 
 $(BINFOLDER):
 	mkdir $(BINFOLDER)
 
 run: all 
-	./$(EXESEQ) ${ARGS}
+	./$(EXE) ${ARGS}
+
+clean:
+	rm bin/*
