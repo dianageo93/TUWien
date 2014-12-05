@@ -8,6 +8,8 @@
 
 #include "bucket_sort_par.h"
 
+#define POOL_MAX_SIZE 10000
+
 using namespace std;
 
 struct buckets_t {
@@ -151,9 +153,9 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
 
     tpool_t *pool;
     if (size % num_threads != 0) {
-        pool = pool_init (num_threads, 100000, num_threads + 1);
+        pool = pool_init (num_threads, POOL_MAX_SIZE, num_threads + 1);
     } else {
-        pool = pool_init (num_threads, 100000, num_threads);
+        pool = pool_init (num_threads, POOL_MAX_SIZE, num_threads);
     }
 
     for (int i = 0; i < num_threads; i++) {
