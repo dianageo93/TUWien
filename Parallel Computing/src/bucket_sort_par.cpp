@@ -1,10 +1,11 @@
 #include <algorithm>
-#include <cstdlib>
-#include <vector>
-#include <pthread.h>
-#include <iostream>
-#include <unistd.h>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
+#include <pthread.h>
+#include <unistd.h>
+#include <vector>
+
 #include "bucket_sort_par.h"
 
 using namespace std;
@@ -136,7 +137,8 @@ void partition (void *p_void) {
     }
 }
 
-void bucketSort_par (int* vector, int size, int range, int num_of_buckets) {
+void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
+        int num_threads) {
     buckets_t *bucketContainer = new buckets_t (num_of_buckets);
     int min = vector[0];
     int max = vector[0];
@@ -145,7 +147,6 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets) {
         max = vector[i] > max ? vector[i] : max;
     }
     float delta = max - min;
-    int num_threads = 1;
     int block = size / num_threads;
 
     tpool_t *pool;
