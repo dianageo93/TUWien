@@ -30,10 +30,10 @@ int main (int argc, char** argv) {
     }
     int* vector = generate_random_vector (num_of_elems, range);
 
-    for (int i = 0; i < num_of_elems; i++) {
-        cout << vector[i] << " ";
-    }
-    cout << endl;
+    //for (int i = 0; i < num_of_elems; i++) {
+    //    cout << vector[i] << " ";
+    //}
+    //cout << endl;
 
     if (argc < 5) {
         cout << "Sequential sort\n";
@@ -41,7 +41,8 @@ int main (int argc, char** argv) {
     }
     else {
         cout << "Parallel sort\n";
-        count::countSort_par(vector, num_of_elems, range, num_of_threads);
+        //count::countSort_par(vector, num_of_elems, range, num_of_threads);
+        bucket::bucketSort_par(vector, num_of_elems, range, num_of_buckets, num_of_threads);
     }
 
     if (test_is_sorted_asc (vector, num_of_elems)) {
