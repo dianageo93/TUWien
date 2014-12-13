@@ -13,6 +13,8 @@
 namespace count {
 using namespace std;
 
+int R;
+
 struct buckets_t {
     int size;
     int *buckets;
@@ -139,11 +141,14 @@ struct sort_t {
 
 void partition (void *p_void) {
     partition_t *p = (partition_t*) p_void;
+    int *tmp = new int[R+1]();
+    // for Saturn
+    //int tmp[R+1] = {0};
     for (int i = p->start; i < p->end; i++) {
-        int bucket = p->v[i];
-        pthread_mutex_lock (&(p->bucketContainer->mutex[bucket]));
-        ++p->bucketContainer->buckets[bucket];
-        pthread_mutex_unlock (&(p->bucketContainer->mutex[bucket]));
+        ++tmp[p->v[i]];
+    }
+    for (int i = 0; i < R+1; i++) {
+        __sync_add_and_fetch(&p->bucketContainer->buckets[i], tmp[i]);
     }
 }
 
@@ -156,6 +161,7 @@ void sortBucket(void *s_void) {
 }
 
 void countSort_par (int* vector, int size, int range, int num_threads) {
+    R = range;
     int num_of_buckets = range + 1;
     buckets_t *bucketContainer = new buckets_t (num_of_buckets);
     int block = size / num_threads;

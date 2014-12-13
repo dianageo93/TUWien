@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <ctime>
 #include <iostream>
 
 #include "sort_seq.h"
@@ -35,15 +36,16 @@ int main (int argc, char** argv) {
     //}
     //cout << endl;
 
-    if (argc < 5) {
-        cout << "Sequential sort\n";
-        countSort_seq(vector, num_of_elems, range);
-    }
-    else {
-        cout << "Parallel sort\n";
-        //count::countSort_par(vector, num_of_elems, range, num_of_threads);
-        bucket::bucketSort_par(vector, num_of_elems, range, num_of_buckets, num_of_threads);
-    }
+    clock_t begin = clock();
+    cout << "Sequential sort\n";
+    countSort_seq(vector, num_of_elems, range);
+    cout << (double) (clock() - begin)/CLOCKS_PER_SEC << endl;
+
+    begin = clock();
+    cout << "Parallel sort\n";
+    count::countSort_par(vector, num_of_elems, range, num_of_threads);
+    //bucket::bucketSort_par(vector, num_of_elems, range, num_of_buckets, num_of_threads);
+    cout << (double) (clock() - begin)/CLOCKS_PER_SEC << endl;
 
     if (test_is_sorted_asc (vector, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
