@@ -6,20 +6,20 @@
 #include <unistd.h>
 #include <vector>
 
-#include "bucket_sort_par.h"
+#include "count_sort_par.h"
 
 #define POOL_MAX_SIZE 10000
 
-namespace bucket {
+namespace count {
 using namespace std;
 
 struct buckets_t {
     int size;
-    vector<vector<int> > buckets;
+    int *buckets;
     pthread_mutex_t *mutex;
 
     buckets_t (int size) : size(size) {
-        buckets.resize(size);
+        buckets = new int[size]();
         mutex = new pthread_mutex_t[size];
         for (int i = 0; i < size; i++) {
             pthread_mutex_init(&mutex[i], NULL);
@@ -120,13 +120,11 @@ void tpool_insert (tpool_t *tpl, void (*routine)(void*), void *arg) {
 }
 
 struct partition_t {
-    int *v, start, end, &min;
-    float &delta;
+    int *v, start, end;
     buckets_t *bucketContainer;
 
-    partition_t (int *v, int start, int end, int min, float delta,
-            buckets_t *bucketContainer) : v(v), start(start), end(end),
-            min(min), delta(delta), bucketContainer(bucketContainer)
+    partition_t (int *v, int start, int end, buckets_t *bucketContainer) : v(v),
+    start(start), end(end), bucketContainer(bucketContainer)
     {}
 };
 
@@ -139,38 +137,28 @@ struct sort_t {
     {}
 };
 
-void sortBucket(void *s_void) {
-    sort_t *s = (sort_t*) s_void;
-    sort(s->bucketContainer->buckets[s->index].begin(),
-         s->bucketContainer->buckets[s->index].end());
-    int offset = s->prefix[s->index];
-    for (unsigned int i = 0; i < s->bucketContainer->buckets[s->index].size(); i++) {
-        s->v[offset + i] = s->bucketContainer->buckets[s->index][i];
-    }
-}
-
 void partition (void *p_void) {
     partition_t *p = (partition_t*) p_void;
     for (int i = p->start; i < p->end; i++) {
-        int bucket = ((p->v[i] - p->min) / p->delta) * (p->bucketContainer->size - 1); 
+        int bucket = p->v[i];
         pthread_mutex_lock (&(p->bucketContainer->mutex[bucket]));
-        p->bucketContainer->buckets[bucket].push_back(p->v[i]);
+        ++p->bucketContainer->buckets[bucket];
         pthread_mutex_unlock (&(p->bucketContainer->mutex[bucket]));
     }
 }
 
-void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
-        int num_threads) {
-    buckets_t *bucketContainer = new buckets_t (num_of_buckets);
-    int min = vector[0];
-    int max = vector[0];
-    for (int i = 0; i < size; i++) {
-        min = vector[i] < min ? vector[i] : min;
-        max = vector[i] > max ? vector[i] : max;
+void sortBucket(void *s_void) {
+    sort_t *s = (sort_t*) s_void;
+    int offset = s->prefix[s->index];
+    for (int i = 0; i < s->bucketContainer->buckets[s->index]; i++) {
+        s->v[offset + i] = s->index;
     }
-    float delta = max - min;
-    int block = size / num_threads;
+}
 
+void countSort_par (int* vector, int size, int range, int num_threads) {
+    int num_of_buckets = range + 1;
+    buckets_t *bucketContainer = new buckets_t (num_of_buckets);
+    int block = size / num_threads;
     tpool_t *pool;
     if (size % num_threads != 0) {
         pool = pool_init (num_threads, POOL_MAX_SIZE, num_threads + 1);
@@ -180,14 +168,14 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
 
     // Partition the input vector into buckets.
     for (int i = 0; i < num_threads; i++) {
-        partition_t *p = new partition_t (vector, i * block, (i+1) * block, min,
-                delta, bucketContainer);
+        partition_t *p = new partition_t (vector, i * block, (i+1) * block,
+                bucketContainer);
         tpool_insert (pool, partition, (void*)p);
     }
 
     if (size % num_threads != 0) {
         partition_t *p = new partition_t (vector, num_threads * block, size,
-                min, delta, bucketContainer);
+                bucketContainer);
         tpool_insert (pool, partition, (void*)p);
     }
 
@@ -202,11 +190,10 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
     prefixSum[0] = 0;
     int num_tasks = 0;
     for (int i = 0; i < num_of_buckets; i++) {
-        if (bucketContainer->buckets[i].size() > 0) {
-            num_tasks++;
+        if (bucketContainer->buckets[i] > 0) {
+            ++num_tasks;
         }
-        prefixSum[i + 1] = bucketContainer->buckets[i].size() +
-            prefixSum[i];
+        prefixSum[i + 1] = bucketContainer->buckets[i] + prefixSum[i];
     }
 
     pthread_mutex_lock (&(pool->lock));
@@ -214,7 +201,7 @@ void bucketSort_par (int* vector, int size, int range, int num_of_buckets,
     pthread_mutex_unlock (&(pool->lock));
 
     for (int i = 0; i < num_of_buckets; i++) {
-        if (bucketContainer->buckets[i].size() > 0) {
+        if (bucketContainer->buckets[i] > 0) {
             sort_t *s = new sort_t (vector, prefixSum, i, bucketContainer);
             tpool_insert (pool, sortBucket, (void*)s);
         }

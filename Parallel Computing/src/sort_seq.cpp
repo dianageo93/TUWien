@@ -2,7 +2,7 @@
 #include <cstdlib>
 #include <vector>
 
-#include "bucket_sort_seq.h"
+#include "sort_seq.h"
 
 using std::vector;
 using std::sort;
@@ -23,7 +23,7 @@ int getMaxVector (int* vector, int size) {
     return max;
 }
 
-void bucketSort (int* vector, int size, int range, int num_of_buckets) {
+void bucketSort_seq (int* vector, int size, int range, int num_of_buckets) {
     std::vector<std::vector<int> > buckets(num_of_buckets, std::vector<int>());
     int min = getMinVector (vector, size);
     int max = getMaxVector (vector, size);
@@ -43,6 +43,19 @@ void bucketSort (int* vector, int size, int range, int num_of_buckets) {
             for (unsigned int j = 0; j < buckets[i].size(); j++) {
                 vector[k++] = buckets[i][j];
             }
+        }
+    }
+}
+
+void countSort_seq (int *vector, int size, int range) {
+    int *buckets = new int[range + 1]();
+    for (int i = 0; i < size; i++) {
+        buckets[vector[i]]++;
+    }
+    int index = 0;
+    for (int i = 0; i < range + 1; i++) {
+        for (int j = 0; j < buckets[i]; j++) {
+            vector[index++] = i;
         }
     }
 }
