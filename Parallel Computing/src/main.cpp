@@ -7,6 +7,7 @@
 #include "count_sort_par.h"
 #include "test_sort.h"
 #include "vector_generator.h"
+#include "time.h"
 
 using namespace std;
 
@@ -31,21 +32,26 @@ int main (int argc, char** argv) {
     }
     int* vector = generate_random_vector (num_of_elems, range);
 
-    //for (int i = 0; i < num_of_elems; i++) {
-    //    cout << vector[i] << " ";
-    //}
-    //cout << endl;
-
-    clock_t begin = clock();
+    struct timespec begin, end;
+    double elapsed;
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     cout << "Sequential sort\n";
     countSort_seq(vector, num_of_elems, range);
-    cout << (double) (clock() - begin)/CLOCKS_PER_SEC << endl;
+    //bucketSort_seq(vector, num_of_elems, range, num_of_buckets);
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << elapsed << endl;
 
-    begin = clock();
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     cout << "Parallel sort\n";
     count::countSort_par(vector, num_of_elems, range, num_of_threads);
     //bucket::bucketSort_par(vector, num_of_elems, range, num_of_buckets, num_of_threads);
-    cout << (double) (clock() - begin)/CLOCKS_PER_SEC << endl;
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << elapsed << endl;
+
 
     if (test_is_sorted_asc (vector, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
