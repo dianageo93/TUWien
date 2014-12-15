@@ -5,11 +5,12 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <vector>
+#include <time.h>
 
 #include "count_sort_par.h"
 
 #define POOL_MAX_SIZE 10000
-#define MAX_NO_THREADS 1000
+#define MAX_NO_THREADS 200
 
 namespace count {
 using namespace std;
@@ -132,11 +133,12 @@ struct partition_t {
 };
 
 struct sort_t {
-    int *v, *prefix, index;
+    int *v, index, offset, count, start_pos;
     buckets_t *bucketContainer;
 
-    sort_t (int *v, int *prefix, int index, buckets_t *bucketContainer) : v(v),
-        prefix(prefix), index(index), bucketContainer(bucketContainer)
+    sort_t (int *v, int index, int offset, int count, int start_pos,
+            buckets_t *bucketContainer) : v(v), index(index), offset(offset),
+    count(count), start_pos(start_pos), bucketContainer(bucketContainer)
     {}
 };
 
@@ -156,9 +158,19 @@ void *partition (void *p_void) {
 
 void *sortBucket(void *s_void) {
     sort_t *s = (sort_t*) s_void;
-    int offset = s->prefix[s->index];
-    for (int i = 0; i < s->bucketContainer->buckets[s->index]; i++) {
-        s->v[offset + i] = s->index;
+    //int *v, index, offset, count, start_pos;
+
+    int written_elems = 0;
+    int index = s->index;
+    int offset = s->offset;
+    while (written_elems < s->count) {
+        while (written_elems < s->count && offset < s->bucketContainer->buckets[index]) {
+            s->v[written_elems + s->start_pos] = index;
+            ++offset;
+            ++written_elems;
+        }
+        ++index;
+        offset = 0;
     }
     return NULL;
 }
@@ -167,25 +179,31 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     R = range;
     int num_buckets = range + 1;
     buckets_t *bucketContainer = new buckets_t (num_buckets);
-    int block = size / num_cores;
 
-    tpool_t *pool = pool_init (MAX_NO_THREADS, POOL_MAX_SIZE);
+    int max_threads = num_cores * 5;
+    int block = size / max_threads;
 
-    int num_tasks = num_cores;
+    struct timespec begin, end;
+    double elapsed;
+    clock_gettime (CLOCK_MONOTONIC, &begin);
+
+    tpool_t *pool = pool_init (max_threads + 1, POOL_MAX_SIZE);
+
+    int num_tasks = max_threads;
     if (size % num_cores != 0) {
         ++num_tasks;
     }
 
     pool->num_tasks = num_tasks;
     // Partition the input vector into buckets.
-    for (int i = 0; i < num_cores; i++) {
+    for (int i = 0; i < max_threads; i++) {
         partition_t *p = new partition_t (vector, i * block, (i+1) * block,
                 bucketContainer);
         tpool_insert (pool, partition, (void*)p);
     }
 
     if (size % num_cores != 0) {
-        partition_t *p = new partition_t (vector, num_cores * block, size,
+        partition_t *p = new partition_t (vector, max_threads * block, size,
                 bucketContainer);
         tpool_insert (pool, partition, (void*)p);
     }
@@ -196,34 +214,60 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     }
     pthread_mutex_unlock (&(pool->lock));
 
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << "Partition time: " << elapsed << endl;
+
     // Sort the buckets and place the values in the initial vector.
-    int prefixSum[num_buckets + 1];
-    prefixSum[0] = 0;
-    num_tasks = 0;
-    for (int i = 0; i < num_buckets; i++) {
-        if (bucketContainer->buckets[i] > 0) {
-            ++num_tasks;
-        }
-        prefixSum[i + 1] = bucketContainer->buckets[i] + prefixSum[i];
+    clock_gettime (CLOCK_MONOTONIC, &begin);
+
+    pool->num_tasks = max_threads;
+    if (size % max_threads != 0) {
+        ++pool->num_tasks;
     }
 
-    // POOL
-    pool->num_tasks = num_tasks;
-
-    for (int i = 0; i < num_buckets; i++) {
-        if (bucketContainer->buckets[i] > 0) {
-            sort_t *s = new sort_t (vector, prefixSum, i, bucketContainer);
-            tpool_insert (pool, sortBucket, (void*)s);
+    int index = 0;
+    int taken_from_index = 0;
+    for (int i = 0; i < max_threads;) {
+        int count = 0; 
+        int offset = taken_from_index;
+        int start_index = index;
+        while (count < block) {
+            if (count + bucketContainer->buckets[index] - taken_from_index >= block) {
+                taken_from_index += block - count;
+                count += block;
+                sort_t *s = new sort_t (vector, start_index, offset, block,
+                        i * block, bucketContainer);
+                tpool_insert (pool, sortBucket, (void*)s);
+            }
+            else {
+                count += bucketContainer->buckets[index] - taken_from_index;
+                taken_from_index = 0;
+                ++index;
+            }
         }
+        i++;
+    }
+    if (size % max_threads != 0) {
+        sort_t *s = new sort_t (vector, index, taken_from_index, size % max_threads,
+                max_threads * block, bucketContainer);
+        tpool_insert (pool, sortBucket, (void*)s);
     }
 
     pthread_mutex_lock (&(pool->lock));
     while (pool->num_tasks > 0) {
         pthread_cond_wait (&(pool->done), &(pool->lock));
     }
-    for (int i = 0; i < MAX_NO_THREADS; i++) {
+    pthread_mutex_unlock (&(pool->lock));
+
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << "Value placement time: " << elapsed << endl;
+
+    for (int i = 0; i < max_threads; i++) {
         pthread_cancel (pool->threads[i]);
     }
-    pthread_mutex_unlock (&(pool->lock));
 }
 };
