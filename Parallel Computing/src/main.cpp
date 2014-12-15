@@ -31,6 +31,10 @@ int main (int argc, char** argv) {
         num_of_threads = atoi (argv[4]);
     }
     int* vector = generate_random_vector (num_of_elems, range);
+    int *copy = new int[num_of_elems];
+    for (int i = 0; i < num_of_elems; i++) {
+        copy[i] = vector[i];
+    }
 
     struct timespec begin, end;
     double elapsed;
@@ -45,8 +49,8 @@ int main (int argc, char** argv) {
 
     clock_gettime (CLOCK_MONOTONIC, &begin);
     cout << "Parallel sort\n";
-    count::countSort_par(vector, num_of_elems, range, num_of_threads);
-    //bucket::bucketSort_par(vector, num_of_elems, range, num_of_buckets, num_of_threads);
+    count::countSort_par(copy, num_of_elems, range, num_of_threads);
+    //bucket::bucketSort_par(copy, num_of_elems, range, num_of_buckets, num_of_threads);
     clock_gettime (CLOCK_MONOTONIC, &end);
     elapsed = end.tv_sec - begin.tv_sec;
     elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
