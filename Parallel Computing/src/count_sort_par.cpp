@@ -171,29 +171,35 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
 
     tpool_t *pool = pool_init (MAX_NO_THREADS, POOL_MAX_SIZE);
 
-    // NO POOL
-    pthread_t threads[num_cores + 1];
-    int active_threads = num_cores;
+    int num_tasks = num_cores;
+    if (size % num_cores != 0) {
+        ++num_tasks;
+    }
+
+    pool->num_tasks = num_tasks;
+    // Partition the input vector into buckets.
     for (int i = 0; i < num_cores; i++) {
         partition_t *p = new partition_t (vector, i * block, (i+1) * block,
                 bucketContainer);
-        pthread_create (&threads[i], NULL, partition, (void*)p);
+        tpool_insert (pool, partition, (void*)p);
     }
 
     if (size % num_cores != 0) {
         partition_t *p = new partition_t (vector, num_cores * block, size,
                 bucketContainer);
-        pthread_create (&threads[num_cores], NULL, partition, (void*)p);
-        ++active_threads;
+        tpool_insert (pool, partition, (void*)p);
     }
-    for (int i = 0; i < active_threads; i++) {
-        pthread_join (threads[i], NULL);
+
+    pthread_mutex_lock (&(pool->lock));
+    while (pool->num_tasks > 0) {
+        pthread_cond_wait (&(pool->done), &(pool->lock));
     }
+    pthread_mutex_unlock (&(pool->lock));
 
     // Sort the buckets and place the values in the initial vector.
     int prefixSum[num_buckets + 1];
     prefixSum[0] = 0;
-    int num_tasks = 0;
+    num_tasks = 0;
     for (int i = 0; i < num_buckets; i++) {
         if (bucketContainer->buckets[i] > 0) {
             ++num_tasks;
