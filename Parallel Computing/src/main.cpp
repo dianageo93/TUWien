@@ -57,7 +57,7 @@ int main (int argc, char** argv) {
     cout << elapsed << endl;
 
 
-    if (test_is_sorted_asc (vector, num_of_elems)) {
+    if (test_is_sorted_asc (copy, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
     } else {
         cout << "Test failed: sorted asc." << endl;
