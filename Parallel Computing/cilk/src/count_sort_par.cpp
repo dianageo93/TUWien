@@ -1,9 +1,8 @@
-#include <algorithm>
+#include <cilk/cilk.h>
+#include <cilk/reducer_opadd.h>
 #include <cmath>
 #include <cstdlib>
 #include <iostream>
-#include <unistd.h>
-#include <vector>
 
 #include "count_sort_par.h"
 
@@ -17,7 +16,7 @@ void partition (int *v, int *bucketContainer, int range, int start, int end) {
     for (int i = start; i < end; i++) {
         ++tmp[v[i]];
     }
-    for (int i = 0; i < R+1; i++) {
+    for (int i = 0; i < range + 1; i++) {
         // add
     }
 }
@@ -25,7 +24,7 @@ void partition (int *v, int *bucketContainer, int range, int start, int end) {
 void sortBucket(int *v, int *bucketContainer, int *prefixSum, int index) {
     int start = prefixSum[index];
     int end = start + bucketContainer[index];
-    //v[start:end:1] = index;
+    v[start:end:1] = index;
 }
 
 void countSort_par (int* vector, int size, int range, int num_cores) {
@@ -47,12 +46,12 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     int prefixSum[num_buckets + 1];
     prefixSum[0] = 0;
     for (int i = 0; i < num_buckets; i++) {
-        prefixSum[i + 1] = bucketContainer->buckets[i] + prefixSum[i];
+        prefixSum[i + 1] = bucketContainer[i] + prefixSum[i];
     }
 
     cilk_for (int i = 0; i < num_buckets; i++) {
         if (bucketContainer[i] != 0) {
-            sort (vector, bucketContainer, prefixSum, i);
+            sortBucket (vector, bucketContainer, prefixSum, i);
         }
     }
     //sync

@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "sort_seq.h"
-#include "bucket_sort_par.h"
 #include "count_sort_par.h"
 #include "test_sort.h"
 #include "vector_generator.h"
