@@ -132,11 +132,11 @@ struct partition_t {
 };
 
 struct sort_t {
-    int *v, *prefix, index;
+    int *v, *prefix, index, end;
     buckets_t *bucketContainer;
 
-    sort_t (int *v, int *prefix, int index, buckets_t *bucketContainer) : v(v),
-        prefix(prefix), index(index), bucketContainer(bucketContainer)
+    sort_t (int *v, int *prefix, int index, int end, buckets_t *bucketContainer) : v(v),
+        prefix(prefix), index(index), end(end), bucketContainer(bucketContainer)
     {}
 };
 
@@ -156,9 +156,11 @@ void *partition (void *p_void) {
 
 void *sortBucket(void *s_void) {
     sort_t *s = (sort_t*) s_void;
-    int offset = s->prefix[s->index];
-    for (int i = 0; i < s->bucketContainer->buckets[s->index]; i++) {
-        s->v[offset + i] = s->index;
+    for (int j = 0; j < s->end - s->index; j++) {
+        int offset = s->prefix[s->index + j];
+        for (int i = 0; i < s->bucketContainer->buckets[s->index + j]; i++) {
+            s->v[offset + i] = s->index;
+        }
     }
     return NULL;
 }
@@ -208,13 +210,27 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
         prefixSum[i + 1] = bucketContainer->buckets[i] + prefixSum[i];
     }
 
-    pool->num_tasks = num_tasks;
+    //pool->num_tasks = num_tasks;
 
-    for (int i = 0; i < num_buckets; i++) {
-        if (bucketContainer->buckets[i] > 0) {
-            sort_t *s = new sort_t (vector, prefixSum, i, bucketContainer);
-            tpool_insert (pool, sortBucket, (void*)s);
-        }
+    //for (int i = 0; i < num_buckets; i++) {
+    //    if (bucketContainer->buckets[i] > 0) {
+    //        sort_t *s = new sort_t (vector, prefixSum, i, bucketContainer);
+    //        tpool_insert (pool, sortBucket, (void*)s);
+    //    }
+    //}
+    int prefix_block = num_buckets / max_threads;
+    pool->num_tasks = max_threads;
+    if (num_buckets % max_threads != 0) {
+        ++pool->num_tasks;
+        sort_t *s = new sort_t (vector, prefixSum, max_threads * prefix_block,
+                num_buckets, bucketContainer);
+        tpool_insert (pool, sortBucket, (void*)s);
+    }
+
+    for (int i = 0; i < max_threads; i++) {
+        sort_t *s = new sort_t (vector, prefixSum, i * prefix_block,
+                (i+1) * prefix_block, bucketContainer);
+        tpool_insert (pool, sortBucket, (void*)s);
     }
 
     pthread_mutex_lock (&(pool->lock));
