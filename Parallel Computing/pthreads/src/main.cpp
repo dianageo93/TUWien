@@ -39,7 +39,6 @@ int main (int argc, char** argv) {
     elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
     cout << elapsed << endl;
 
-    print (vector, num_of_elems);
     clock_gettime (CLOCK_MONOTONIC, &begin);
     cout << "Parallel sort\n";
     count::countSort_par(copy, num_of_elems, range, num_cores);
@@ -47,7 +46,6 @@ int main (int argc, char** argv) {
     elapsed = end.tv_sec - begin.tv_sec;
     elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
     cout << elapsed << endl;
-    print (copy, num_of_elems);
 
     if (test_is_sorted_asc (copy, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
