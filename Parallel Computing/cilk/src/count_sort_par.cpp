@@ -92,6 +92,5 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     elapsed = end.tv_sec - begin.tv_sec;
     elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
     cout << "Sort time: " << elapsed << endl;
-
 }
 };
