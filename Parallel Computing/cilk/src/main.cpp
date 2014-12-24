@@ -50,7 +50,6 @@ int main (int argc, char** argv) {
     elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
     cout << elapsed << endl;
 
-
     if (test_is_sorted_asc (copy, num_of_elems)) {
         cout << "Test passed: sorted asc." << endl;
     } else {

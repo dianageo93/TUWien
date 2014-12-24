@@ -9,51 +9,85 @@
 namespace count {
 using namespace std;
 
-void partition (int *v, int *bucketContainer, int range, int start, int end) {
+typedef cilk::reducer< cilk::op_add<int> > add_reducer;
+
+void partition (int *v, add_reducer *bucketContainer, int range, int start, int end) {
     int *tmp = new int[range+1]();
     // for Saturn
     //int tmp[range+1] = {0};
+    #pragma simd
     for (int i = start; i < end; i++) {
         ++tmp[v[i]];
     }
+    #pragma simd
     for (int i = 0; i < range + 1; i++) {
-        // add
+        *bucketContainer[i] += tmp[i];
     }
 }
 
 void sortBucket(int *v, int *bucketContainer, int *prefixSum, int index) {
     int start = prefixSum[index];
     int end = start + bucketContainer[index];
-    v[start:end:1] = index;
+    //v[start:end:1] = index;
+    #pragma simd
+    for (int i = start; i < end; i++) {
+        v[i] = index;
+    }
 }
 
 void countSort_par (int* vector, int size, int range, int num_cores) {
+    struct timespec begin, end;
+    double elapsed;
+
     int num_buckets = range + 1;
-    int *bucketContainer = new int[num_buckets];
+    add_reducer *bucketContainer = new add_reducer[num_buckets];
     int block = size / num_cores;
 
-    cilk_for (int i = 0; i < num_cores; i++) {
-        partition(vector, bucketContainer, range, i * block, (i+1) * block);
+
+    clock_gettime (CLOCK_MONOTONIC, &begin);
+    for (int i = 0; i < num_cores; i++) {
+        cilk_spawn partition(vector, bucketContainer, range, i * block, (i+1) * block);
     }
 
     if (size % num_cores != 0) {
         partition(vector, bucketContainer, range, num_cores * block, size);
     }
 
-    // sync 
+    cilk_sync;
+
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << "Partition time: " << elapsed << endl;
 
     // Sort the buckets and place the values in the initial vector.
+
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     int prefixSum[num_buckets + 1];
+    int bucketContInt[num_buckets];
     prefixSum[0] = 0;
     for (int i = 0; i < num_buckets; i++) {
-        prefixSum[i + 1] = bucketContainer[i] + prefixSum[i];
+        bucketContInt[i] = bucketContainer[i].get_value();
+        prefixSum[i + 1] = bucketContInt[i] + prefixSum[i];
     }
 
-    cilk_for (int i = 0; i < num_buckets; i++) {
-        if (bucketContainer[i] != 0) {
-            sortBucket (vector, bucketContainer, prefixSum, i);
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << "Prefixsum time: " << elapsed << endl;
+
+    clock_gettime (CLOCK_MONOTONIC, &begin);
+    for (int i = 0; i < num_buckets; i++) {
+        if (bucketContInt[i] != 0) {
+            cilk_spawn sortBucket (vector, bucketContInt, prefixSum, i);
         }
     }
-    //sync
+    cilk_sync;
+
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << "Sort time: " << elapsed << endl;
+
 }
 };
