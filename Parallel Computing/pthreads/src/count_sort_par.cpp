@@ -59,6 +59,9 @@ void *sortBucket(void *s_void) {
 }
 
 void countSort_par (int* vector, int size, int range, int num_cores) {
+    struct timespec begin, end;
+    double elapsed;
+
     R = range;
     int num_buckets = range + 1;
     int *bucketContainer = new int[num_buckets];
@@ -68,6 +71,7 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     pthread_t threads[max_threads]; 
 
     // Partition the input vector into buckets.
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     for (int i = 0; i < max_threads; i++) {
         partition_t *p = new partition_t (vector, i * block, (i+1) * block,
                 bucketContainer);
@@ -84,13 +88,25 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
         pthread_join (threads[i], NULL);
     }
 
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << elapsed << ",";
+
     // Sort the buckets and place the values in the initial vector.
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     int prefixSum[num_buckets + 1];
     prefixSum[0] = 0;
     for (int i = 0; i < num_buckets; i++) {
         prefixSum[i + 1] = bucketContainer[i] + prefixSum[i];
     }
 
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << elapsed << ",";
+
+    clock_gettime (CLOCK_MONOTONIC, &begin);
     int prefix_block = num_buckets / max_threads;
     for (int i = 0; i < max_threads; i++) {
         sort_t *s = new sort_t (vector, prefixSum, i * prefix_block,
@@ -107,5 +123,10 @@ void countSort_par (int* vector, int size, int range, int num_cores) {
     for (int i = 0; i < max_threads; i++) {
         pthread_join (threads[i], NULL);
     }
+
+    clock_gettime (CLOCK_MONOTONIC, &end);
+    elapsed = end.tv_sec - begin.tv_sec;
+    elapsed += (end.tv_nsec - begin.tv_nsec) / 1000000000.0;
+    cout << elapsed << ",";
 }
 };

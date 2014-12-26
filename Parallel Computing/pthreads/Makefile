@@ -6,8 +6,9 @@ LDFLAGS=-lpthread -lm
 EXE=bin/exec
 SRC=$(wildcard src/*.cpp)
 OBJ=$(subst src, bin, $(SRC:.cpp=.o))
+BINFOLDER=bin
 
-all: $(SRC) $(EXE) $(BINFOLDER)
+all: $(BINFOLDER) $(SRC) $(EXE)
 
 $(EXE): $(OBJ)
 	$(CC) $(OBJ) -o $@ $(LDFLAGS)
