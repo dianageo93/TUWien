@@ -6,9 +6,9 @@ echo "Compiled ................................................................"
 echo "Num elements,Range,Num Cores,Seq Sort Time,Partition Time,Prefixsum Time,Sort Time,Par Sort Time" > results_cilk.csv
 
 echo "Testing ................................................................."
-NUM_ELEMS=( ) #5 50 500 5000 50000 500000 5000000 50000000 500000000 )
-RANGE=( ) #100 200 500 1000 5000 )
-NUM_CORES=( ) #1 2 4 10 20 40 48 50 )
+NUM_ELEMS=( 5 50 500 5000 50000 500000 5000000 50000000 500000000 )
+RANGE=( 100 200 500 1000 5000 )
+NUM_CORES=( 1 2 4 10 20 40 48 50 )
 
 for E in "${NUM_ELEMS[@]}"
 do
@@ -49,7 +49,7 @@ echo "Compiled ................................................................"
 echo "Num elements,Range,Num Cores,Seq Sort Time,Partition Time,Prefixsum Time,Sort Time,Par Sort Time" > results_pthreads.csv
 
 echo "Testing ................................................................."
-NUM_ELEMS=( 50000000 ) #5 50 500 5000 50000 500000 5000000 50000000 500000000 )
+NUM_ELEMS=( 5 50 500 5000 50000 500000 5000000 50000000 500000000 )
 RANGE=( 100 200 500 1000 5000 )
 NUM_CORES=( 1 2 4 10 20 40 48 50 )
 
