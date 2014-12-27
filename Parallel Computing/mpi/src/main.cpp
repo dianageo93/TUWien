@@ -38,14 +38,13 @@ int main (int argc, char** argv) {
         for (int i = 0; i < num_of_elems; i++) {
             copy[i] = vector[i];
         }
-        print (copy, num_of_elems);
     }
 
     count::countSort_par (copy, num_of_elems, range);
+    if (rank == 0) {
+        countSort_seq (vector, num_of_elems, range);
+    }
 
-        //MPI_Scatter(globaldata, 1, MPI_INT, &localdata, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    
     struct timespec begin, end;
     double elapsed;
 
@@ -58,11 +57,13 @@ int main (int argc, char** argv) {
     //cout << elapsed << endl;
 
 
-    //if (test_is_sorted_asc (copy, num_of_elems)) {
-    //    cout << "Test passed: sorted asc." << endl;
-    //} else {
-    //    cout << "Test failed: sorted asc." << endl;
-    //}
+    if (rank == 0) {
+        if (test_is_sorted_asc (copy, num_of_elems)) {
+            cout << "Test passed: sorted asc." << endl;
+        } else {
+            cout << "Test failed: sorted asc." << endl;
+        }
+    }
 
     MPI_Finalize();
     return 0;
