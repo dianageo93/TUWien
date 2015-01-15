@@ -9,8 +9,11 @@ using namespace std;
 
 void partition (int *vector, int *localVector, int *buckets, int blockSize, 
         int range, int size) {
+    // the initial unsorted array is equaly divided among processes
     MPI_Scatter (vector, blockSize, MPI_INT, localVector, blockSize, MPI_INT,
             0, MPI_COMM_WORLD);
+
+    // elements in the local bucket are indexed
     int num_buckets = range + 1;
     int *localBuckets = new int[num_buckets]();
     for (int i = 0; i < blockSize; i++) {
@@ -23,14 +26,17 @@ void partition (int *vector, int *localVector, int *buckets, int blockSize,
 
 	if (rank == 0) {
         if (size % procs != 0) {
+            // if array size isn't divisibile with the number of processes 
             for (int i = blockSize * procs; i < size; i++) {
                 ++localBuckets[vector[i]];
             }
         }
     }
 
+    // all local buckets are added to a master bucket
     MPI_Allreduce (localBuckets, buckets, num_buckets, MPI_INT, MPI_SUM, MPI_COMM_WORLD); 
 
+    // prefix sum
     int prefixSum[num_buckets + 1];
     prefixSum[0] = 0;
     for (int i = 0; i < num_buckets; i++) {
@@ -40,6 +46,7 @@ void partition (int *vector, int *localVector, int *buckets, int blockSize,
     blockSize = num_buckets / procs;
     blockSize = blockSize == 0 ? 1 : blockSize;
 
+    // part of the final sorted array that each process has to send
     int *local_sort;
     int start = rank * blockSize;
     int end;
@@ -58,6 +65,7 @@ void partition (int *vector, int *localVector, int *buckets, int blockSize,
         }
     }
 
+    // array of offsets for Gatherv
     int offsets[procs];
     int sizes[procs];
     for (int i = 0; i < procs; i++) {
@@ -75,10 +83,13 @@ void partition (int *vector, int *localVector, int *buckets, int blockSize,
         }
     }
 
+    // each process sends its part of the sorted array to the root process
     MPI_Gatherv (local_sort, local_size, MPI_INT, vector, sizes, offsets,
             MPI_INT, 0, MPI_COMM_WORLD);
 
     if (num_buckets  > procs && num_buckets % procs != 0  && rank == 0) {
+        // on the root process, if there are some buckets left that need to be
+        // put in the final array
         start = procs * blockSize;
         end = num_buckets;
         for (int i = start; i < end; i++) {
@@ -103,9 +114,5 @@ void countSort_par (int* vector, int size, int range) {
     int *buckets = new int[range+1];
     
     partition (vector, localVector, buckets, block, range, size);
-    //for (int i = 0; i <= range; i++) {
-    //    cout << buckets[i] << " ";
-    //}
-    //cout << endl;
 }
 };

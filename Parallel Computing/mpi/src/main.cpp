@@ -14,7 +14,7 @@ using namespace std;
 int main (int argc, char** argv) {
     if (argc < 2) {
         cout << "Invalid number of parameters. Usage:" << endl;
-        cout << "./seq #NUM_OF_ELEMS #RANGE"
+        cout << "./exec #NUM_OF_ELEMS #RANGE"
              << endl;
         cout << "where #RANGE is an unsigned int and is the upper bound that "
              << "an element in the input vector can take." 
@@ -34,7 +34,6 @@ int main (int argc, char** argv) {
     double vec_gen_time;
     int *vector, *copy;
     if (rank == 0) {
-        cout << "Start vector generating\n";
         double start = MPI_Wtime();
         vector = generate_random_vector (num_of_elems, range);
         copy = new int[num_of_elems];
@@ -43,12 +42,9 @@ int main (int argc, char** argv) {
         }
         double end = MPI_Wtime();
         vec_gen_time = end -start;
-        cout << "Done vector generating: " << end - start << endl;
+        cout << "Array generated in: " << end - start << endl;
     }
 
-    if (rank == 0) {
-        cout << "Start parallel sort\n";
-    }
     double start = MPI_Wtime();
     count::countSort_par (copy, num_of_elems, range);
     double end = MPI_Wtime();
